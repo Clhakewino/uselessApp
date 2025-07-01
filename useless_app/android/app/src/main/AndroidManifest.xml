@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="useless_app"
-        android:name="${applicationName}"
+        android:label="Useless"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

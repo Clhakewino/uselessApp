@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -22,10 +23,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// --- FireworkEvent, FusePainter, ParticleData, ParticleWidget (rimangono sostanzialmente invariati dalla versione precedente senza commenti) ---
-// (Per brevità, non li includo di nuovo qui, ma assumi che siano come nella versione precedente "senza commenti"
-// con la correzione `late final fuseAnimation;` e l'uso corretto di vsync.)
-
 class FireworkEvent {
   final Key id;
   final AnimationController fuseController;
@@ -42,18 +39,32 @@ class FireworkEvent {
   final TickerProvider vsync;
   bool _isDisposed = false;
 
+  final Color fuseColor;
+
+  static List<Color> fuseColors = [
+    Colors.yellowAccent,
+    Color(0xFF0382F1),
+    Colors.white,
+    Color(0xFFE800EF),
+    Color(0xFFED0A0A),
+  ];
+
+  final int particleCount; // <-- aggiunto
+
   FireworkEvent({
     required this.vsync,
     required this.random,
     required this.onRequestVisualUpdate,
     required this.onEventComplete,
-    required Offset initialFireworkOrigin, // Modificato per chiarezza
+    required Offset initialFireworkOrigin,
     required Size screenSize,
+    required this.particleCount, // <-- aggiunto
   })  : id = UniqueKey(),
-        fuseStartPoint = initialFireworkOrigin, // Usa la nuova origine
+        fuseColor = fuseColors[random.nextInt(fuseColors.length)],
+        fuseStartPoint = initialFireworkOrigin,
         fuseEndPoint = Offset(
-          random.nextDouble() * screenSize.width,
-          random.nextDouble() * screenSize.height * 0.7,
+          (0.05 + random.nextDouble() * 0.9) * screenSize.width,
+          random.nextDouble() * screenSize.height * 0.80 + 100.0,
         ),
         fuseControlPoint = Offset(
           (initialFireworkOrigin.dx + (random.nextDouble() * screenSize.width)) / 2 +
@@ -87,7 +98,7 @@ class FireworkEvent {
   void _createParticleExplosion() {
     if (_isDisposed || hasExploded) return;
     hasExploded = true;
-    for (int i = 0; i < 35 + random.nextInt(25); i++) {
+    for (int i = 0; i < particleCount; i++) { // <-- usa particleCount
       final particleCtrl = AnimationController(
         duration: Duration(milliseconds: 600 + random.nextInt(700)),
         vsync: vsync,
@@ -99,18 +110,17 @@ class FireworkEvent {
         random: random,
         onRequestVisualUpdate: onRequestVisualUpdate,
         onComplete: (particleKey) {
-          if (_isDisposed) {
-            try { particleCtrl.dispose(); } catch (e) {/*ignore*/}
-            return;
-          }
           particles.removeWhere((p) => p.key == particleKey);
           try { particleCtrl.dispose(); } catch (e) {/*ignore*/}
-          _checkCompletion();
           if (!_isDisposed) onRequestVisualUpdate();
+          _checkCompletion();
         },
+        color: ParticleData.particleColors[random.nextInt(ParticleData.particleColors.length)],
       );
       particles.add(particle);
-      if (!_isDisposed) particleCtrl.forward();
+      if (!_isDisposed) {
+        particleCtrl.forward();
+      }
       else { try { particleCtrl.dispose(); } catch (e) {/*ignore*/} }
     }
     if (!_isDisposed) onRequestVisualUpdate();
@@ -133,6 +143,7 @@ class FireworkEvent {
         controlPoint: fuseControlPoint,
         endPoint: fuseEndPoint,
         progress: fuseAnimation.value,
+        fuseColor: fuseColor,
       ),
       child: Container(),
     );
@@ -163,12 +174,14 @@ class FusePainter extends CustomPainter {
   final Offset controlPoint;
   final Offset endPoint;
   final double progress;
+  final Color fuseColor;
 
   FusePainter({
     required this.startPoint,
     required this.controlPoint,
     required this.endPoint,
     required this.progress,
+    required this.fuseColor,
   });
 
   Offset _getQuadraticBezierPoint(Offset p0, Offset p1, Offset p2, double t) {
@@ -183,11 +196,13 @@ class FusePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (progress <= 0.001 || progress >= 0.999) return;
+
     final paint = Paint()
-      ..color = Colors.orangeAccent.withOpacity(0.8)
-      ..strokeWidth = 3.0 // leggermente più spessa
+      ..color = fuseColor.withValues(alpha: 0.85)
+      ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
+
     Path pathToDraw = Path()..moveTo(startPoint.dx, startPoint.dy);
     Offset currentFuseTip = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, progress);
     Offset intermediateControlPoint = Offset.lerp(startPoint, controlPoint, progress)!;
@@ -198,10 +213,11 @@ class FusePainter extends CustomPainter {
       currentFuseTip.dy,
     );
     canvas.drawPath(pathToDraw, paint);
-    final sparkPaint = Paint()..color = Colors.yellowAccent..style = PaintingStyle.fill;
-    canvas.drawCircle(currentFuseTip, 5.0, sparkPaint); // scintilla più grande
-    final outerSparkPaint = Paint()..color = Colors.orange.withOpacity(0.7)..style = PaintingStyle.fill;
-    canvas.drawCircle(currentFuseTip, 8.0, outerSparkPaint); // alone più grande
+
+    final sparkPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    canvas.drawCircle(currentFuseTip, 5.0, sparkPaint);
+    final outerSparkPaint = Paint()..color = fuseColor.withValues(alpha: 0.7)..style = PaintingStyle.fill;
+    canvas.drawCircle(currentFuseTip, 8.0, outerSparkPaint);
   }
 
   @override
@@ -222,8 +238,19 @@ class ParticleData {
   final Function(Key) onComplete;
   late final Animation<double> opacityAnimation;
   late final Animation<Offset> positionAnimation;
-  final Color color;
+  final Color color; // <-- aggiunto qui
   final double size;
+
+  static const List<Color> particleColors = [
+    Colors.yellow,
+    Colors.cyan,
+    Colors.pink,
+    Colors.orange,
+    Colors.green,
+    Colors.blue,
+    Colors.purple,
+    Colors.white,
+  ];
 
   ParticleData({
     required this.key,
@@ -232,18 +259,13 @@ class ParticleData {
     required this.random,
     required this.onRequestVisualUpdate,
     required this.onComplete,
-  })  : color = Color.fromARGB(
-    255,
-    180 + random.nextInt(76), // Colori più vivaci
-    100 + random.nextInt(156),
-    50 + random.nextInt(156),
-  ).withBlue(50 + random.nextInt(100)).withGreen(100 + random.nextInt(155)), // Più varietà
-        size = 3.5 + random.nextDouble() * 6.0 { // Particelle leggermente più grandi
+    required this.color, // <-- aggiunto qui
+  })  : size = 3.5 + random.nextDouble() * 6.0 {
     opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
     );
     final angle = random.nextDouble() * 2 * pi;
-    final distance = 70.0 + random.nextDouble() * 130.0; // Esplosione più ampia
+    final distance = 70.0 + random.nextDouble() * 130.0;
     positionAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset(cos(angle) * distance, sin(angle) * distance),
@@ -273,7 +295,7 @@ class ParticleWidget extends StatelessWidget {
           top: particleData.initialGlobalPosition.dy + particleData.positionAnimation.value.dy - (particleData.size / 2),
 
           child: Opacity(
-            opacity: particleData.opacityAnimation.value.clamp(0.0, 1.0),
+            opacity: particleData.opacityAnimation.value.clamp(0.7, 1.0),
             child: Container(
               width: particleData.size,
               height: particleData.size,
@@ -282,7 +304,7 @@ class ParticleWidget extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: particleData.color.withOpacity(0.6), // Ombra più pronunciata
+                    color: particleData.color.withValues(alpha: 0.8), // Ombra più pronunciata
                     blurRadius: particleData.size * 0.8, // Blur relativo alla dimensione
                     spreadRadius: particleData.size * 0.2,
                   )
@@ -304,47 +326,74 @@ class InitialScreen extends StatefulWidget {
 }
 
 class _InitialScreenState extends State<InitialScreen> with TickerProviderStateMixin {
-  FireworkEvent? _currentFirework;
+  final List<FireworkEvent> _fireworks = [];
   final Random _random = Random();
   final GlobalKey _buttonKey = GlobalKey();
   bool _isButtonPressed = false;
+  int _counter = 0;
+  Timer? _fireworkTimer;
+  Timer? _holdDelayTimer;
+
+  void _startFireworkTimer() {
+    _fireworkTimer?.cancel();
+    _fireworkTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      _launchNewFirework();
+    });
+  }
+
+  void _stopFireworkTimer() {
+    _fireworkTimer?.cancel();
+    _fireworkTimer = null;
+  }
+
+  void _cancelHoldDelayTimer() {
+    _holdDelayTimer?.cancel();
+    _holdDelayTimer = null;
+  }
 
   void _launchNewFirework() {
-    if (_currentFirework != null && !_currentFirework!._isDisposed) {
-      _currentFirework!.dispose();
-    }
-
     final RenderBox? buttonRenderBox = _buttonKey.currentContext?.findRenderObject() as RenderBox?;
     if (buttonRenderBox == null || !mounted) return;
 
     final buttonSize = buttonRenderBox.size;
     final buttonCenterGlobal = buttonRenderBox.localToGlobal(buttonSize.center(Offset.zero));
-
-    // Offset per far partire i fuochi da "dietro" e leggermente più in basso del centro
     final fireworkOrigin = Offset(buttonCenterGlobal.dx, buttonCenterGlobal.dy + buttonSize.height * 0.3);
-
-
     final screenSize = MediaQuery.of(context).size;
 
+    // --- LOGICA PARTICELLE DINAMICHE ---
+    const int MAX_ACTIVE_FIREWORKS = 15;
+    const int DEFAULT_PARTICLES = 25;
+    const int MIN_PARTICLES = 7;
+    int activeFireworks = _fireworks.length;
+    int particleCount;
+    if (activeFireworks <= 0) {
+      particleCount = 40;
+    } else if (activeFireworks == 1) {
+      particleCount = 27;
+    } else {
+      particleCount = 15;
+    }
+
     setState(() {
-      _currentFirework = FireworkEvent(
+      _counter++;
+      final firework = FireworkEvent(
         vsync: this,
         random: _random,
         onRequestVisualUpdate: () {
           if (mounted) setState(() {});
         },
         onEventComplete: (eventId) {
-          if (mounted && _currentFirework?.id == eventId) {
-            _currentFirework?.dispose();
-            setState(() {
-              _currentFirework = null;
-            });
-          }
+          if (!mounted) return;
+          setState(() {
+            _fireworks.removeWhere((f) => f.id == eventId);
+          });
         },
-        initialFireworkOrigin: fireworkOrigin, // Modificato qui
+        initialFireworkOrigin: fireworkOrigin,
         screenSize: screenSize,
+        particleCount: particleCount,
       );
-      _currentFirework!.start();
+      _fireworks.add(firework);
+      firework.start();
     });
   }
 
@@ -360,9 +409,10 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Miccia sotto il pulsante
-          if (_currentFirework != null && _currentFirework!.buildFuseWidget() != null)
-            _currentFirework!.buildFuseWidget()!,
+          ..._fireworks
+              .map((f) => f.buildFuseWidget())
+              .where((w) => w != null)
+              .cast<Widget>(),
           // 2. Pulsante
           Center(
             child: GestureDetector(
@@ -371,24 +421,33 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                 setState(() {
                   _isButtonPressed = true;
                 });
+                _launchNewFirework();
+                _holdDelayTimer = Timer(const Duration(milliseconds: 500), () {
+                  if (_isButtonPressed) {
+                    _startFireworkTimer();
+                  }
+                });
               },
               onTapUp: (_) {
                 setState(() {
                   _isButtonPressed = false;
                 });
-                _launchNewFirework();
+                _stopFireworkTimer();
+                _cancelHoldDelayTimer();
               },
               onTapCancel: () {
                 setState(() {
                   _isButtonPressed = false;
                 });
+                _stopFireworkTimer();
+                _cancelHoldDelayTimer();
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 curve: Curves.easeInOut,
                 transform: Matrix4.identity()..scale(buttonScale),
                 transformAlignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [topColor, bottomColor],
@@ -398,19 +457,19 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                   borderRadius: BorderRadius.circular(25.0),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       offset: Offset(buttonDepth, buttonDepth),
                       blurRadius: buttonDepth * 1.5,
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: Colors.red.shade200.withOpacity(0.7),
+                      color: Colors.red.shade200.withValues(alpha: 0.7),
                       offset: Offset(-buttonDepth / 2, -buttonDepth / 2),
                       blurRadius: buttonDepth,
                       spreadRadius: 0,
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       offset: Offset.zero,
                       blurRadius: 5,
                       spreadRadius: -3,
@@ -418,9 +477,9 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                   ],
                 ),
                 child: const Text(
-                  'Lancia Fuoco!',
+                  'Iglie!',
                   style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       shadows: [
@@ -436,7 +495,26 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
             ),
           ),
           // 3. Particelle sopra il pulsante
-          if (_currentFirework != null) ..._currentFirework!.buildParticleWidgets(),
+          ..._fireworks.expand((f) => f.buildParticleWidgets()),
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: Text(
+              '$_counter',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    offset: Offset(1, 1),
+                    blurRadius: 2,
+                    color: Colors.black54,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -444,7 +522,11 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
 
   @override
   void dispose() {
-    _currentFirework?.dispose();
+    _stopFireworkTimer();
+    _cancelHoldDelayTimer();
+    for (var f in _fireworks) {
+      f.dispose();
+    }
     super.dispose();
   }
 }
