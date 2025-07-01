@@ -125,7 +125,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final double buttonDepth = _isButtonPressed ? 2.0 : 8.0;
+    final double buttonDepth = _isButtonPressed ? 2.0 : 6.0;
     final double buttonScale = _isButtonPressed ? 0.96 : 1.0;
     final Color topColor = _isButtonPressed ? Colors.red.shade700 : Colors.red.shade500;
     final Color bottomColor = _isButtonPressed ? Colors.red.shade900 : Colors.red.shade700;
@@ -183,20 +183,8 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.5),
                       offset: Offset(buttonDepth, buttonDepth),
-                      blurRadius: buttonDepth * 1.5,
+                      blurRadius: buttonDepth * 2,
                       spreadRadius: 1,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      offset: Offset(-buttonDepth / 2, -buttonDepth / 2),
-                      blurRadius: buttonDepth,
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      offset: Offset.zero,
-                      blurRadius: 5,
-                      spreadRadius: -3,
                     ),
                   ],
                 ),
