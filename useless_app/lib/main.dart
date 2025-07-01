@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'Fireworks.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -57,6 +58,24 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     _holdDelayTimer = null;
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCounter();
+  }
+
+  Future<void> _loadCounter() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _counter = prefs.getInt('firework_counter') ?? 0;
+    });
+  }
+
+  Future<void> _saveCounter() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('firework_counter', _counter);
+  }
+
   void _launchNewFirework() {
     final RenderBox? buttonRenderBox = _buttonKey.currentContext?.findRenderObject() as RenderBox?;
     if (buttonRenderBox == null || !mounted) return;
@@ -72,29 +91,33 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     if (activeFireworks <= 0) {
       particleCount = 40;
     } else if (activeFireworks == 1) {
-      particleCount = 27;
+      particleCount = 20;
     } else {
-      particleCount = 15;
+      particleCount = 10;
     }
 
     setState(() {
       _counter++;
-      final firework = FireworkEvent(
-        vsync: this,
-        random: _random,
-        onRequestVisualUpdate: () {
-          if (mounted) setState(() {});
-        },
-        onEventComplete: (eventId) {
-          if (!mounted) return;
-          setState(() {
-            _fireworks.removeWhere((f) => f.id == eventId);
-          });
-        },
-        initialFireworkOrigin: fireworkOrigin,
-        screenSize: screenSize,
-        particleCount: particleCount,
-      );
+    });
+    _saveCounter();
+
+    final firework = FireworkEvent(
+      vsync: this,
+      random: _random,
+      onRequestVisualUpdate: () {
+        if (mounted) setState(() {});
+      },
+      onEventComplete: (eventId) {
+        if (!mounted) return;
+        setState(() {
+          _fireworks.removeWhere((f) => f.id == eventId);
+        });
+      },
+      initialFireworkOrigin: fireworkOrigin,
+      screenSize: screenSize,
+      particleCount: particleCount,
+    );
+    setState(() {
       _fireworks.add(firework);
       firework.start();
     });
@@ -203,7 +226,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
               '$_counter',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 shadows: [
                   Shadow(

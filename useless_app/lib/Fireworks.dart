@@ -29,6 +29,10 @@ class FireworkEvent {
 
   final int particleCount;
 
+  AnimationController? _trailFadeController;
+  Animation<double>? _trailFadeAnimation;
+  bool _showTrail = true;
+
   FireworkEvent({
     required this.vsync,
     required this.random,
@@ -68,9 +72,34 @@ class FireworkEvent {
   void _onFuseStatusChanged(AnimationStatus status) {
     if (_isDisposed) return;
     if (status == AnimationStatus.completed) {
-      if (!hasExploded) _createParticleExplosion();
+      if (!hasExploded) {
+        _createParticleExplosion();
+        _startTrailFade();
+      }
       _checkCompletion();
     }
+  }
+
+  void _startTrailFade() {
+    if (_trailFadeController != null) return;
+    final fadeDuration = Duration(
+      milliseconds: 500 + random.nextInt(1000),
+    );
+    _trailFadeController = AnimationController(
+      duration: fadeDuration,
+      vsync: vsync,
+    );
+    _trailFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _trailFadeController!, curve: Curves.easeOut),
+    )..addListener(onRequestVisualUpdate);
+    _trailFadeController!.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _showTrail = false;
+        onRequestVisualUpdate();
+        _checkCompletion();
+      }
+    });
+    _trailFadeController!.forward();
   }
 
   void _createParticleExplosion() {
@@ -112,8 +141,13 @@ class FireworkEvent {
   }
 
   Widget? buildFuseWidget() {
-    if (_isDisposed || (fuseController.status == AnimationStatus.completed && hasExploded)) {
-      return null;
+    if (_isDisposed) return null;
+    // Mostra la scia solo se non è stata completamente dissolta
+    if (!_showTrail) return null;
+    double fade = 1.0;
+    if (fuseController.status == AnimationStatus.completed && _trailFadeAnimation != null) {
+      fade = _trailFadeAnimation!.value;
+      if (fade <= 0.01) return null;
     }
     return CustomPaint(
       painter: FusePainter(
@@ -122,6 +156,8 @@ class FireworkEvent {
         endPoint: fuseEndPoint,
         progress: fuseAnimation.value,
         fuseColor: fuseColor,
+        fade: fade,
+        showFullTrail: fuseController.status == AnimationStatus.completed,
       ),
       child: Container(),
     );
@@ -140,6 +176,11 @@ class FireworkEvent {
       fuseController.removeStatusListener(_onFuseStatusChanged);
       fuseController.dispose();
     } catch (e) {/*ignore*/}
+    if (_trailFadeController != null) {
+      try {
+        _trailFadeController!.dispose();
+      } catch (e) {/*ignore*/}
+    }
     for (var p in List.from(particles)) {
       try { p.controller.dispose(); } catch (e) {/*ignore*/}
     }
@@ -147,12 +188,15 @@ class FireworkEvent {
   }
 }
 
+// Modifica FusePainter per supportare la dissolvenza e la scia completa dopo l'esplosione
 class FusePainter extends CustomPainter {
   final Offset startPoint;
   final Offset controlPoint;
   final Offset endPoint;
   final double progress;
   final Color fuseColor;
+  final double fade;
+  final bool showFullTrail;
 
   FusePainter({
     required this.startPoint,
@@ -160,6 +204,8 @@ class FusePainter extends CustomPainter {
     required this.endPoint,
     required this.progress,
     required this.fuseColor,
+    this.fade = 1.0,
+    this.showFullTrail = false,
   });
 
   Offset _getQuadraticBezierPoint(Offset p0, Offset p1, Offset p2, double t) {
@@ -173,29 +219,48 @@ class FusePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (progress <= 0.001 || progress >= 0.999) return;
+    double drawProgress = showFullTrail ? 1.0 : progress;
+    if (drawProgress <= 0.001) return;
 
-    final paint = Paint()
-      ..color = fuseColor.withValues(alpha: 0.85)
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    int steps = 20;
+    double fadeLength = 0.35;
+    double fadeStart = drawProgress * (1 - fadeLength);
+    double fadeEnd = drawProgress;
 
-    Path pathToDraw = Path()..moveTo(startPoint.dx, startPoint.dy);
-    Offset currentFuseTip = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, progress);
-    Offset intermediateControlPoint = Offset.lerp(startPoint, controlPoint, progress)!;
-    pathToDraw.quadraticBezierTo(
-      intermediateControlPoint.dx,
-      intermediateControlPoint.dy,
-      currentFuseTip.dx,
-      currentFuseTip.dy,
-    );
-    canvas.drawPath(pathToDraw, paint);
+    for (int i = 0; i < steps; i++) {
+      double t0 = (i / steps) * drawProgress;
+      double t1 = ((i + 1) / steps) * drawProgress;
+      if (t1 > drawProgress) t1 = drawProgress;
+      if (t0 >= t1) continue;
 
-    final sparkPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    canvas.drawCircle(currentFuseTip, 5.0, sparkPaint);
-    final outerSparkPaint = Paint()..color = fuseColor.withValues(alpha: 0.7)..style = PaintingStyle.fill;
-    canvas.drawCircle(currentFuseTip, 8.0, outerSparkPaint);
+      Offset p0 = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, t0);
+      Offset p1 = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, t1);
+
+      double alpha;
+      if (t1 >= fadeStart) {
+        double fadeT = ((t1 - fadeStart) / (fadeEnd - fadeStart)).clamp(0.0, 1.0);
+        alpha = (1.0 - fadeT) * 0.85 * fade;
+      } else {
+        alpha = 0.85 * fade;
+      }
+
+      final paint = Paint()
+        ..color = fuseColor.withValues(alpha: alpha)
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawLine(p0, p1, paint);
+    }
+
+    // Disegna la scintilla solo se la miccia non è completamente esplosa
+    if (!showFullTrail) {
+      Offset currentFuseTip = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, progress);
+      final sparkPaint = Paint()..color = Colors.white.withValues(alpha: fade)..style = PaintingStyle.fill;
+      canvas.drawCircle(currentFuseTip, 5.0, sparkPaint);
+      final outerSparkPaint = Paint()..color = fuseColor.withValues(alpha: 0.7 * fade)..style = PaintingStyle.fill;
+      canvas.drawCircle(currentFuseTip, 8.0, outerSparkPaint);
+    }
   }
 
   @override
@@ -203,7 +268,9 @@ class FusePainter extends CustomPainter {
     return oldDelegate.startPoint != startPoint ||
         oldDelegate.controlPoint != controlPoint ||
         oldDelegate.endPoint != endPoint ||
-        oldDelegate.progress != progress;
+        oldDelegate.progress != progress ||
+        oldDelegate.fade != fade ||
+        oldDelegate.showFullTrail != showFullTrail;
   }
 }
 
