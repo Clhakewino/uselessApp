@@ -187,7 +187,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: Colors.red.shade200.withValues(alpha: 0.7),
+                      color: Colors.black.withValues(alpha: 0.4),
                       offset: Offset(-buttonDepth / 2, -buttonDepth / 2),
                       blurRadius: buttonDepth,
                       spreadRadius: 0,

@@ -222,7 +222,7 @@ class FusePainter extends CustomPainter {
     double drawProgress = showFullTrail ? 1.0 : progress;
     if (drawProgress <= 0.001) return;
 
-    int steps = 20;
+    int steps = 300;
     double fadeLength = 0.35;
     double fadeStart = drawProgress * (1 - fadeLength);
     double fadeEnd = drawProgress;
@@ -253,13 +253,22 @@ class FusePainter extends CustomPainter {
       canvas.drawLine(p0, p1, paint);
     }
 
-    // Disegna la scintilla solo se la miccia non è completamente esplosa
     if (!showFullTrail) {
       Offset currentFuseTip = _getQuadraticBezierPoint(startPoint, controlPoint, endPoint, progress);
-      final sparkPaint = Paint()..color = Colors.white.withValues(alpha: fade)..style = PaintingStyle.fill;
-      canvas.drawCircle(currentFuseTip, 5.0, sparkPaint);
-      final outerSparkPaint = Paint()..color = fuseColor.withValues(alpha: 0.7 * fade)..style = PaintingStyle.fill;
-      canvas.drawCircle(currentFuseTip, 8.0, outerSparkPaint);
+      int hash = currentFuseTip.dx.toInt() ^ currentFuseTip.dy.toInt();
+      double rand = (hash % 1000) / 1000.0;
+      double innerRadius = 1.5 + rand * 0.9;
+      double outerRadius = (2.5 + rand * 1.4) + 2.2;
+
+      final colorPaint = Paint()
+        ..color = fuseColor.withValues(alpha: 0.7 * fade)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(currentFuseTip, outerRadius, colorPaint);
+
+      final sparkPaint = Paint()
+        ..color = fuseColor.withValues(alpha: fade)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(currentFuseTip, innerRadius, sparkPaint);
     }
   }
 
