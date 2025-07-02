@@ -314,7 +314,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     if (widget.counter > ControlCounters.minCounterStellaCadente) {
       if (_fallingStarTimer == null || !_fallingStarTimer!.isActive) {
         _fallingStarTimer?.cancel();
-        int tmpDuration = 20 - (widget.counter ~/ ControlCounters.minCounterStellaCadente);
+        int tmpDuration = 15 - (widget.counter ~/ ControlCounters.minCounterStellaCadente);
         int duration = tmpDuration < 3 ? 3 : tmpDuration;
         _fallingStarTimer = Timer.periodic(Duration(seconds: duration), (_) {
           if (mounted && widget.counter > ControlCounters.minCounterStellaCadente) {
