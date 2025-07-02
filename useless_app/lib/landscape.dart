@@ -188,19 +188,19 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
       double left = random.nextDouble() * (size.width - 80);
       double bottom;
       if (zIndex == 0) {
-        double minBottom = size.height * 0.04;
-        double maxBottom = size.height * 0.045;
+        double minBottom = size.height * 0.035;
+        double maxBottom = size.height * 0.04;
         bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
       } else if (zIndex == 1) {
-        double minBottom = size.height * 0.02;
-        double maxBottom = size.height * 0.03;
+        double minBottom = size.height * 0.015;
+        double maxBottom = size.height * 0.02;
         bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
       } else {
-        double minBottom = -10;
+        double minBottom = -15;
         double maxBottom = size.height * 0.00;
         bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
       }
-      double scale = 0.3 + random.nextDouble() * 0.3;
+      double scale = 0.18 + random.nextDouble() * 0.18;
       String asset = flowerAssets[random.nextInt(flowerAssets.length)];
       return _FlowerData(left: left, bottom: bottom, zIndex: zIndex, scale: scale, asset: asset);
     });
@@ -453,10 +453,10 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
       if (widget.counter >= 1200) {
         children.add(Positioned(
           left: -100,
-          bottom: 40, // più in basso rispetto a prima
+          bottom: 40,
           child: Image.asset(
             'assets/images/castello.png',
-            width: 200, // più piccolo
+            width: 200,
             fit: BoxFit.contain,
           ),
         ));
@@ -471,6 +471,17 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
           'assets/images/prato2.png',
           width: screenWidth,
           fit: BoxFit.fitWidth,
+        ),
+      ));
+
+      children.add(Positioned(
+        right: 0,
+        bottom: 0,
+        child: Image.asset(
+          'assets/images/animated/albero.gif',
+          width: 90,
+          height: 120,
+          fit: BoxFit.contain,
         ),
       ));
 
