@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'Fireworks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'landscape.dart';
 
 void main() {
   runApp(const MyApp());
@@ -61,7 +62,9 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _loadCounter();
+    _loadCounter().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadCounter() async {
@@ -89,11 +92,11 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     int activeFireworks = _fireworks.length;
     int particleCount;
     if (activeFireworks <= 0) {
-      particleCount = 40;
+      particleCount = 30;
     } else if (activeFireworks == 1) {
-      particleCount = 20;
+      particleCount = 15;
     } else {
-      particleCount = 10;
+      particleCount = 6;
     }
 
     setState(() {
@@ -134,6 +137,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
       body: Stack(
         fit: StackFit.expand,
         children: [
+          LandscapeBackground(counter: _counter),
           ..._fireworks
               .map((f) => f.buildFuseWidget())
               .where((w) => w != null)
