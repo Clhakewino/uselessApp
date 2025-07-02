@@ -474,16 +474,18 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
         ),
       ));
 
-      children.add(Positioned(
-        right: 0,
-        bottom: 0,
-        child: Image.asset(
-          'assets/images/animated/albero.gif',
-          width: 90,
-          height: 120,
-          fit: BoxFit.contain,
-        ),
-      ));
+      if (widget.counter >= 850) {
+        children.add(Positioned(
+          right: 0,
+          bottom: 0,
+          child: Image.asset(
+            'assets/images/animated/albero.gif',
+            width: 90,
+            height: 120,
+            fit: BoxFit.contain,
+          ),
+        ));
+      }
 
       // Prato 1 (davanti)
       children.add(Positioned(
