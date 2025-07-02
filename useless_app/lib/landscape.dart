@@ -380,6 +380,18 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
       );
     }).toList();
 
+    // --- STELLE CADENTI --- (sempre dietro luna e nuvole)
+    for (final fallingStar in _fallingStars) {
+      children.add(Positioned(
+        left: fallingStar.start.dx,
+        top: fallingStar.start.dy,
+        child: CustomPaint(
+          size: Size(fallingStar.end.dx - fallingStar.start.dx, fallingStar.end.dy - fallingStar.start.dy),
+          painter: _FallingStarPainter(fallingStar: fallingStar),
+        ),
+      ));
+    }
+
     // --- LUNA ---
     if (_moonPosition != null && _moonAsset != null) {
       children.add(Positioned(
@@ -416,18 +428,6 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
               fit: BoxFit.contain,
             ),
           ),
-        ),
-      ));
-    }
-
-    // --- STELLE CADENTI ---
-    for (final fallingStar in _fallingStars) {
-      children.add(Positioned(
-        left: fallingStar.start.dx,
-        top: fallingStar.start.dy,
-        child: CustomPaint(
-          size: Size(fallingStar.end.dx - fallingStar.start.dx, fallingStar.end.dy - fallingStar.start.dy),
-          painter: _FallingStarPainter(fallingStar: fallingStar),
         ),
       ));
     }
