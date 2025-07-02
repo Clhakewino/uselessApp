@@ -22,6 +22,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
   List<_StarData> _stars = [];
   List<_FlowerData> _flowers = [];
   List<_CloudData> _clouds = [];
+  List<_FallingStarData> _fallingStars = [];
   Size? _lastSize;
   int _lastStarCount = 0;
   int _lastFlowerCount = 0;
@@ -32,6 +33,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
   double? _moonRotation;
 
   late AnimationController _cloudAnimController;
+  Timer? _fallingStarTimer;
 
   @override
   void initState() {
@@ -52,11 +54,14 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
         setState(() {});
       });
     _cloudAnimController.repeat();
+
+    _maybeStartFallingStars();
   }
 
   @override
   void dispose() {
     _cloudAnimController.dispose();
+    _fallingStarTimer?.cancel();
     super.dispose();
   }
 
@@ -67,6 +72,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     _maybeGenerateFlowers();
     _maybeGenerateMoon();
     _maybeGenerateClouds();
+    _maybeStartFallingStars();
   }
 
   @override
@@ -76,6 +82,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     _maybeGenerateFlowers(force: true);
     _maybeGenerateMoon(force: true);
     _maybeGenerateClouds(force: true);
+    _maybeStartFallingStars();
   }
 
   void _maybeGenerateStars({bool force = false}) {
@@ -298,6 +305,62 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     }
   }
 
+  void _maybeStartFallingStars() {
+    // Avvia o ferma il timer in base al counter
+    if (widget.counter > 3000) {
+      if (_fallingStarTimer == null || !_fallingStarTimer!.isActive) {
+        _fallingStarTimer?.cancel();
+        _fallingStarTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+          if (mounted && widget.counter > 3000) {
+            _addFallingStar();
+          }
+        });
+      }
+    } else {
+      _fallingStarTimer?.cancel();
+      _fallingStarTimer = null;
+      if (_fallingStars.isNotEmpty) {
+        setState(() {
+          _fallingStars.clear();
+        });
+      }
+    }
+  }
+
+  void _addFallingStar() {
+    final Size size = widget.screenSize ?? MediaQuery.of(context).size;
+    final Random random = Random(_sessionSeed + DateTime.now().millisecondsSinceEpoch);
+    final double startX = random.nextDouble() * (size.width * 0.5);
+    final double startY = random.nextDouble() * (size.height * 0.3);
+
+    // Angolo random tra 45° e 0°
+    final double angle = (0) + random.nextDouble() * (pi / 4);
+
+    final double trailLength = size.width * (2.5 + random.nextDouble() * 0.7);
+    final double dx = cos(angle) * trailLength;
+    final double dy = sin(angle) * trailLength;
+    final double endX = startX + dx;
+    final double endY = startY + dy;
+    final double duration = 1.3 + random.nextDouble() * 0.7; // più veloce: tra 1.3 e 2.0 secondi
+
+    final fallingStar = _FallingStarData(
+      start: Offset(startX, startY),
+      end: Offset(endX, endY),
+      startTime: DateTime.now(),
+      duration: duration,
+      size: 10 + random.nextDouble() * 6, // più piccola per scia sottile
+      angle: angle,
+    );
+    setState(() {
+      _fallingStars.add(fallingStar);
+    });
+
+    Future.delayed(Duration(milliseconds: (duration * 1000).toInt() + 300), () {
+      _fallingStars.remove(fallingStar);
+      if (mounted) setState(() {});
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
@@ -358,7 +421,16 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     }
 
     // --- STELLE CADENTI ---
-    final now = DateTime.now();
+    for (final fallingStar in _fallingStars) {
+      children.add(Positioned(
+        left: fallingStar.start.dx,
+        top: fallingStar.start.dy,
+        child: CustomPaint(
+          size: Size(fallingStar.end.dx - fallingStar.start.dx, fallingStar.end.dy - fallingStar.start.dy),
+          painter: _FallingStarPainter(fallingStar: fallingStar),
+        ),
+      ));
+    }
 
     // Visualizza i tre prati solo se il counter è almeno 450
     if (widget.counter >= 450) {
@@ -520,6 +592,69 @@ class _CloudData {
         leftToRight: leftToRight,
         id: id,
       );
+}
+
+// Dati per la stella cadente
+class _FallingStarData {
+  final Offset start;
+  final Offset end;
+  final DateTime startTime;
+  final double duration;
+  final double size;
+  final double angle;
+  _FallingStarData({
+    required this.start,
+    required this.end,
+    required this.startTime,
+    required this.duration,
+    required this.size,
+    required this.angle,
+  });
+}
+
+// Painter per la stella cadente e la scia
+class _FallingStarPainter extends CustomPainter {
+  final _FallingStarData fallingStar;
+  _FallingStarPainter({required this.fallingStar});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final now = DateTime.now();
+    final elapsed = now.difference(fallingStar.startTime).inMilliseconds / 1000.0;
+    final t = (elapsed / fallingStar.duration).clamp(0.0, 1.0);
+
+    final Offset pos = Offset(
+      fallingStar.start.dx + (fallingStar.end.dx - fallingStar.start.dx) * t,
+      fallingStar.start.dy + (fallingStar.end.dy - fallingStar.start.dy) * t,
+    );
+    final Offset tail = Offset(
+      fallingStar.start.dx + (fallingStar.end.dx - fallingStar.start.dx) * (t - 0.25).clamp(0.0, 1.0),
+      fallingStar.start.dy + (fallingStar.end.dy - fallingStar.start.dy) * (t - 0.25).clamp(0.0, 1.0),
+    );
+
+    final Paint trailPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.white.withOpacity(0.0),
+          Colors.white.withOpacity(0.7),
+        ],
+      ).createShader(Rect.fromPoints(tail, pos))
+      ..strokeWidth = fallingStar.size * 0.28 // scia più sottile
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawLine(tail, pos, trailPaint);
+
+    final Paint starPaint = Paint()
+      ..color = Colors.white
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4); // meno glow
+
+    canvas.drawCircle(pos, fallingStar.size * 0.28, starPaint); // stella più piccola
+  }
+
+  @override
+  bool shouldRepaint(covariant _FallingStarPainter oldDelegate) => true;
 }
 
 class _SharpMultiPointStarPainter extends CustomPainter {
