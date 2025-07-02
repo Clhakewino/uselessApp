@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'ControlCounters.dart';
 
 class LandscapeBackground extends StatefulWidget {
   final int counter;
@@ -86,7 +87,10 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
   }
 
   void _maybeGenerateStars({bool force = false}) {
-    final int starCount = widget.counter ~/ widget.starsPerStep;
+    // La prima stella appare a counter >= ControlCounters.minCounterStar
+    final int starCount = widget.counter < ControlCounters.minCounterStar
+        ? 0
+        : widget.counter ~/ widget.starsPerStep;
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _stars.length != starCount || _lastSize != size) {
       _generateStars(starCount, size);
@@ -94,14 +98,14 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
   }
 
   void _maybeGenerateFlowers({bool force = false}) {
-    if (widget.counter < 600) {
+    if (widget.counter < ControlCounters.minCounterFiori) {
       if (_flowers.isNotEmpty) {
         _flowers = [];
         if (mounted) setState(() {});
       }
       return;
     }
-    final int flowerCount = 1 + ((widget.counter - 600) ~/ 350);
+    final int flowerCount = 1 + ((widget.counter - ControlCounters.minCounterFiori) ~/ 350);
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _flowers.length != flowerCount || _lastSize != size) {
       _generateFlowers(flowerCount, size);
@@ -109,7 +113,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
   }
 
   void _maybeGenerateMoon({bool force = false}) {
-    if (widget.counter < 1500) {
+    if (widget.counter < ControlCounters.minCounterLuna) {
       if (_moonPosition != null || _moonAsset != null || _moonRotation != null) {
         _moonPosition = null;
         _moonAsset = null;
@@ -142,8 +146,8 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
 
   void _maybeGenerateClouds({bool force = false}) {
     int cloudCount = 0;
-    if (widget.counter >= 2000) {
-      cloudCount = 1 + ((widget.counter - 2000) ~/ 1500);
+    if (widget.counter >= ControlCounters.minCounterNuvole) {
+      cloudCount = 1 + ((widget.counter - ControlCounters.minCounterNuvole) ~/ 1500);
     }
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _clouds.length != cloudCount || _lastSize != size) {
@@ -307,11 +311,13 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
 
   void _maybeStartFallingStars() {
     // Avvia o ferma il timer in base al counter
-    if (widget.counter > 3000) {
+    if (widget.counter > ControlCounters.minCounterStellaCadente) {
       if (_fallingStarTimer == null || !_fallingStarTimer!.isActive) {
         _fallingStarTimer?.cancel();
-        _fallingStarTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-          if (mounted && widget.counter > 3000) {
+        int tmpDuration = 20 - (widget.counter ~/ ControlCounters.minCounterStellaCadente);
+        int duration = tmpDuration < 3 ? 3 : tmpDuration;
+        _fallingStarTimer = Timer.periodic(Duration(seconds: duration), (_) {
+          if (mounted && widget.counter > ControlCounters.minCounterStellaCadente) {
             _addFallingStar();
           }
         });
@@ -432,8 +438,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
       ));
     }
 
-    // Visualizza i tre prati solo se il counter è almeno 450
-    if (widget.counter >= 450) {
+    if (widget.counter >= ControlCounters.minCounterPrato) {
       final double screenWidth = MediaQuery.of(context).size.width;
       final double screenHeight = MediaQuery.of(context).size.height;
 
@@ -449,8 +454,8 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
         ),
       ));
 
-      // --- CASTELLO tra prato3 e prato2, solo se counter >= 1200 ---
-      if (widget.counter >= 1200) {
+      // --- CASTELLO tra prato3 e prato2, solo se counter >= ControlCounters.minCounterCastello ---
+      if (widget.counter >= ControlCounters.minCounterCastello) {
         children.add(Positioned(
           left: -100,
           bottom: 40,
@@ -474,7 +479,8 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
         ),
       ));
 
-      if (widget.counter >= 850) {
+      // --- ALBERO ANIMATO tra prato2 e prato1, in basso a destra, solo se counter >= ControlCounters.minCounterAlbero ---
+      if (widget.counter >= ControlCounters.minCounterAlbero) {
         children.add(Positioned(
           right: 0,
           bottom: 0,
