@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'Fireworks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'buttonsManager.dart';
 import 'landscape.dart';
 
 void main() {
@@ -127,103 +128,141 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (event) {
-          _isHolding = true;
-          _lastTapPosition = event.localPosition;
-          _holdDelayTimer?.cancel();
-          _holdDelayTimer = Timer(const Duration(milliseconds: 500), () {
-            if (_isHolding && _lastTapPosition != null) {
-              _startFireworkTimer();
-            }
-          });
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (event) {
+              // --- BLOCCA FUOCHI SE TAP SU LEADERBOARD ---
+              final RenderBox? box = _buttonKey.currentContext?.findRenderObject() as RenderBox?;
+              bool tappedLeaderboard = false;
+              if (box != null) {
+                final Offset local = box.globalToLocal(event.position);
+                if (local.dx >= 0 &&
+                    local.dy >= 0 &&
+                    local.dx <= box.size.width &&
+                    local.dy <= box.size.height) {
+                  tappedLeaderboard = true;
+                }
+              }
+              if (tappedLeaderboard) {
+                // Tap sul pulsante leaderboard: non lanciare fuochi
+                return;
+              }
+              _isHolding = true;
+              _lastTapPosition = event.localPosition;
+              _holdDelayTimer?.cancel();
+              _holdDelayTimer = Timer(const Duration(milliseconds: 500), () {
+                if (_isHolding && _lastTapPosition != null) {
+                  _startFireworkTimer();
+                }
+              });
 
-          // Firework singolo subito al tap
-          final tapPosition = event.localPosition;
-          final screenSize = MediaQuery.of(context).size;
+              // Firework singolo subito al tap
+              final tapPosition = event.localPosition;
+              final screenSize = MediaQuery.of(context).size;
 
-          int activeFireworks = _fireworks.length;
-          int particleCount;
-          if (activeFireworks <= 0) {
-            particleCount = 20;
-          } else if (activeFireworks == 1) {
-            particleCount = 10;
-          } else {
-            particleCount = 4;
-          }
+              int activeFireworks = _fireworks.length;
+              int particleCount;
+              if (activeFireworks <= 0) {
+                particleCount = 20;
+              } else if (activeFireworks == 1) {
+                particleCount = 10;
+              } else {
+                particleCount = 4;
+              }
 
-          setState(() {
-            _counter++;
-          });
-          _saveCounter();
-
-          final firework = FireworkEvent(
-            vsync: this,
-            random: _random,
-            onRequestVisualUpdate: () {
-              if (mounted) setState(() {});
-            },
-            onEventComplete: (eventId) {
-              if (!mounted) return;
               setState(() {
-                _fireworks.removeWhere((f) => f.id == eventId);
+                _counter++;
+              });
+              _saveCounter();
+
+              final firework = FireworkEvent(
+                vsync: this,
+                random: _random,
+                onRequestVisualUpdate: () {
+                  if (mounted) setState(() {});
+                },
+                onEventComplete: (eventId) {
+                  if (!mounted) return;
+                  setState(() {
+                    _fireworks.removeWhere((f) => f.id == eventId);
+                  });
+                },
+                initialFireworkOrigin: tapPosition,
+                screenSize: screenSize,
+                particleCount: particleCount,
+              );
+              setState(() {
+                _fireworks.add(firework);
+                firework.start();
               });
             },
-            initialFireworkOrigin: tapPosition,
-            screenSize: screenSize,
-            particleCount: particleCount,
-          );
-          setState(() {
-            _fireworks.add(firework);
-            firework.start();
-          });
-        },
-        onPointerUp: (_) {
-          _isHolding = false;
-          _holdDelayTimer?.cancel();
-          _stopFireworkTimer();
-        },
-        onPointerCancel: (_) {
-          _isHolding = false;
-          _holdDelayTimer?.cancel();
-          _stopFireworkTimer();
-        },
-        onPointerMove: (event) {
-          if (_isHolding) {
-            _lastTapPosition = event.localPosition;
-          }
-        },
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            LandscapeBackground(counter: _counter),
-            ..._fireworks
-                .map((f) => f.buildFuseWidget())
-                .where((w) => w != null)
-                .cast<Widget>(),
-            ..._fireworks.expand((f) => f.buildParticleWidgets()),
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: Text(
-                '$_counter',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(1, 1),
-                      blurRadius: 2,
-                      color: Colors.black54,
+            onPointerUp: (_) {
+              _isHolding = false;
+              _holdDelayTimer?.cancel();
+              _stopFireworkTimer();
+            },
+            onPointerCancel: (_) {
+              _isHolding = false;
+              _holdDelayTimer?.cancel();
+              _stopFireworkTimer();
+            },
+            onPointerMove: (event) {
+              if (_isHolding) {
+                _lastTapPosition = event.localPosition;
+              }
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                LandscapeBackground(counter: _counter),
+                ..._fireworks
+                    .map((f) => f.buildFuseWidget())
+                    .where((w) => w != null)
+                    .cast<Widget>(),
+                ..._fireworks.expand((f) => f.buildParticleWidgets()),
+                Positioned(
+                  left: 16,
+                  bottom: 16,
+                  child: Text(
+                    '$_counter',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 2,
+                          color: Colors.black54,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+          ),
+          // --- Bottone leaderboard in alto a destra (di poco più in basso) ---
+          Positioned(
+            top: 48,
+            right: 16,
+            child: GestureDetector(
+              key: _buttonKey,
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                ButtonsManager.onLeaderboardTap(context);
+              },
+              child: Image.asset(
+                'assets/images/icons/leaderboardIcon.png',
+                width: 52,
+                height: 52,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

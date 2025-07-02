@@ -93,6 +93,7 @@ flutter:
     - assets/images/clouds/nuvola5.png
     - assets/images/castello.png
     - assets/images/animated/albero.gif
+    - assets/images/icons/leaderboardIcon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
