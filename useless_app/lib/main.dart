@@ -41,11 +41,15 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   int _counter = 0;
   Timer? _fireworkTimer;
   Timer? _holdDelayTimer;
+  bool _isHolding = false;
+  Offset? _lastTapPosition;
 
   void _startFireworkTimer() {
     _fireworkTimer?.cancel();
     _fireworkTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      _launchNewFirework();
+      if (_isHolding && _lastTapPosition != null) {
+        _launchNewFirework(at: _lastTapPosition);
+      }
     });
   }
 
@@ -79,16 +83,10 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     await prefs.setInt('firework_counter', _counter);
   }
 
-  void _launchNewFirework() {
-    final RenderBox? buttonRenderBox = _buttonKey.currentContext?.findRenderObject() as RenderBox?;
-    if (buttonRenderBox == null || !mounted) return;
-
-    final buttonSize = buttonRenderBox.size;
-    final buttonCenterGlobal = buttonRenderBox.localToGlobal(buttonSize.center(Offset.zero));
-    final fireworkOrigin = Offset(buttonCenterGlobal.dx, buttonCenterGlobal.dy + buttonSize.height * 0.3);
+  void _launchNewFirework({Offset? at}) {
     final screenSize = MediaQuery.of(context).size;
+    final fireworkOrigin = at ?? Offset(screenSize.width / 2, screenSize.height / 2);
 
-    // --- LOGICA PARTICELLE DINAMICHE ---
     int activeFireworks = _fireworks.length;
     int particleCount;
     if (activeFireworks <= 0) {
@@ -128,109 +126,104 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final double buttonDepth = _isButtonPressed ? 2.0 : 6.0;
-    final double buttonScale = _isButtonPressed ? 0.96 : 1.0;
-    final Color topColor = _isButtonPressed ? Colors.red.shade700 : Colors.red.shade500;
-    final Color bottomColor = _isButtonPressed ? Colors.red.shade900 : Colors.red.shade700;
-
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          LandscapeBackground(counter: _counter),
-          ..._fireworks
-              .map((f) => f.buildFuseWidget())
-              .where((w) => w != null)
-              .cast<Widget>(),
-          Center(
-            child: GestureDetector(
-              key: _buttonKey,
-              onTapDown: (_) {
-                setState(() {
-                  _isButtonPressed = true;
-                });
-                _launchNewFirework();
-                _holdDelayTimer = Timer(const Duration(milliseconds: 500), () {
-                  if (_isButtonPressed) {
-                    _startFireworkTimer();
-                  }
-                });
-              },
-              onTapUp: (_) {
-                setState(() {
-                  _isButtonPressed = false;
-                });
-                _stopFireworkTimer();
-                _cancelHoldDelayTimer();
-              },
-              onTapCancel: () {
-                setState(() {
-                  _isButtonPressed = false;
-                });
-                _stopFireworkTimer();
-                _cancelHoldDelayTimer();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeInOut,
-                transform: Matrix4.identity()..scale(buttonScale),
-                transformAlignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [topColor, bottomColor],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(25.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      offset: Offset(buttonDepth, buttonDepth),
-                      blurRadius: buttonDepth * 2,
-                      spreadRadius: 1,
+      body: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (event) {
+          _isHolding = true;
+          _lastTapPosition = event.localPosition;
+          _holdDelayTimer?.cancel();
+          _holdDelayTimer = Timer(const Duration(milliseconds: 500), () {
+            if (_isHolding && _lastTapPosition != null) {
+              _startFireworkTimer();
+            }
+          });
+
+          // Firework singolo subito al tap
+          final tapPosition = event.localPosition;
+          final screenSize = MediaQuery.of(context).size;
+
+          int activeFireworks = _fireworks.length;
+          int particleCount;
+          if (activeFireworks <= 0) {
+            particleCount = 30;
+          } else if (activeFireworks == 1) {
+            particleCount = 15;
+          } else {
+            particleCount = 6;
+          }
+
+          setState(() {
+            _counter++;
+          });
+          _saveCounter();
+
+          final firework = FireworkEvent(
+            vsync: this,
+            random: _random,
+            onRequestVisualUpdate: () {
+              if (mounted) setState(() {});
+            },
+            onEventComplete: (eventId) {
+              if (!mounted) return;
+              setState(() {
+                _fireworks.removeWhere((f) => f.id == eventId);
+              });
+            },
+            initialFireworkOrigin: tapPosition,
+            screenSize: screenSize,
+            particleCount: particleCount,
+          );
+          setState(() {
+            _fireworks.add(firework);
+            firework.start();
+          });
+        },
+        onPointerUp: (_) {
+          _isHolding = false;
+          _holdDelayTimer?.cancel();
+          _stopFireworkTimer();
+        },
+        onPointerCancel: (_) {
+          _isHolding = false;
+          _holdDelayTimer?.cancel();
+          _stopFireworkTimer();
+        },
+        onPointerMove: (event) {
+          if (_isHolding) {
+            _lastTapPosition = event.localPosition;
+          }
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            LandscapeBackground(counter: _counter),
+            ..._fireworks
+                .map((f) => f.buildFuseWidget())
+                .where((w) => w != null)
+                .cast<Widget>(),
+            ..._fireworks.expand((f) => f.buildParticleWidgets()),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: Text(
+                '$_counter',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                      color: Colors.black54,
                     ),
                   ],
                 ),
-                child: const Text(
-                  '',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(1.0, 1.0),
-                          blurRadius: 2.0,
-                          color: Colors.black38,
-                        ),
-                      ]
-                  ),
-                ),
               ),
             ),
-          ),
-          ..._fireworks.expand((f) => f.buildParticleWidgets()),
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: Text(
-              '$_counter',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    offset: Offset(1, 1),
-                    blurRadius: 2,
-                    color: Colors.black54,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
