@@ -146,11 +146,11 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
           int activeFireworks = _fireworks.length;
           int particleCount;
           if (activeFireworks <= 0) {
-            particleCount = 30;
+            particleCount = 20;
           } else if (activeFireworks == 1) {
-            particleCount = 15;
+            particleCount = 10;
           } else {
-            particleCount = 6;
+            particleCount = 4;
           }
 
           setState(() {

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class LandscapeBackground extends StatefulWidget {
   final int counter;
@@ -17,16 +18,20 @@ class LandscapeBackground extends StatefulWidget {
   State<LandscapeBackground> createState() => _LandscapeBackgroundState();
 }
 
-class _LandscapeBackgroundState extends State<LandscapeBackground> {
+class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTickerProviderStateMixin {
   List<_StarData> _stars = [];
   List<_FlowerData> _flowers = [];
+  List<_CloudData> _clouds = [];
   Size? _lastSize;
   int _lastStarCount = 0;
   int _lastFlowerCount = 0;
+  int _lastCloudCount = 0;
   late int _sessionSeed;
   Offset? _moonPosition;
   String? _moonAsset;
   double? _moonRotation;
+
+  late AnimationController _cloudAnimController;
 
   @override
   void initState() {
@@ -37,7 +42,22 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
       _maybeGenerateStars(force: true);
       _maybeGenerateFlowers(force: true);
       _maybeGenerateMoon(force: true);
+      _maybeGenerateClouds(force: true);
     });
+
+    _cloudAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 60),
+    )..addListener(() {
+        setState(() {});
+      });
+    _cloudAnimController.repeat();
+  }
+
+  @override
+  void dispose() {
+    _cloudAnimController.dispose();
+    super.dispose();
   }
 
   @override
@@ -46,6 +66,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     _maybeGenerateStars();
     _maybeGenerateFlowers();
     _maybeGenerateMoon();
+    _maybeGenerateClouds();
   }
 
   @override
@@ -54,6 +75,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     _maybeGenerateStars(force: true);
     _maybeGenerateFlowers(force: true);
     _maybeGenerateMoon(force: true);
+    _maybeGenerateClouds(force: true);
   }
 
   void _maybeGenerateStars({bool force = false}) {
@@ -108,6 +130,17 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
       _moonRotation = (random.nextDouble() * 30 - 15) * (pi / 180);
       _lastSize = size;
       if (mounted) setState(() {});
+    }
+  }
+
+  void _maybeGenerateClouds({bool force = false}) {
+    int cloudCount = 0;
+    if (widget.counter >= 2000) {
+      cloudCount = 1 + ((widget.counter - 2000) ~/ 1500);
+    }
+    final Size size = widget.screenSize ?? MediaQuery.of(context).size;
+    if (force || _clouds.length != cloudCount || _lastSize != size) {
+      _generateClouds(cloudCount, size);
     }
   }
 
@@ -169,8 +202,107 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     if (mounted) setState(() {});
   }
 
+  void _generateClouds(int cloudCount, Size size) {
+    final Random random = Random(_sessionSeed + 888888);
+    final List<String> cloudAssets = [
+      'assets/images/clouds/nuvola1.png',
+      'assets/images/clouds/nuvola2.png',
+      'assets/images/clouds/nuvola3.png',
+      'assets/images/clouds/nuvola4.png',
+      'assets/images/clouds/nuvola5.png',
+    ];
+    int visibleClouds = (cloudCount / 2).ceil();
+    _clouds = List.generate(cloudCount, (i) {
+      String asset = cloudAssets[random.nextInt(cloudAssets.length)];
+      double baseWidth = 200.0;
+      double scale = 0.7 + random.nextDouble() * 0.3; // tra 0.7 e 1.0
+      double width = baseWidth * scale;
+      double height = width * (0.45 + random.nextDouble() * 0.2);
+      bool fromLeft = random.nextBool();
+      double left;
+      if (i < visibleClouds) {
+        // Già visibile a schermo
+        left = random.nextDouble() * (size.width - width);
+      } else {
+        // Fuori dallo schermo a sinistra o destra
+        left = fromLeft ? -width - random.nextDouble() * 100 : size.width + random.nextDouble() * 100;
+      }
+      double top = random.nextDouble() * ((size.height * 0.5) - height);
+      int zIndex = 1;
+      double opacity = 0.65 + random.nextDouble() * 0.35;
+      double speed = 1.2 + random.nextDouble() * 1.6;
+      bool leftToRight = fromLeft;
+      return _CloudData(
+        left: left,
+        top: top,
+        width: width,
+        height: height,
+        asset: asset,
+        zIndex: zIndex,
+        opacity: opacity,
+        speed: speed,
+        leftToRight: leftToRight,
+        id: random.nextInt(1 << 32),
+      );
+    });
+    _lastCloudCount = cloudCount;
+    _lastSize = size;
+    if (mounted) setState(() {});
+  }
+
+  void _moveClouds(Size size) {
+    final double elapsed = _cloudAnimController.lastElapsedDuration?.inMilliseconds.toDouble() ?? 0;
+    final double dt = 1 / 60.0; // approx 60fps
+    for (int i = 0; i < _clouds.length; i++) {
+      final cloud = _clouds[i];
+      double dx = cloud.speed * dt * (cloud.leftToRight ? 1 : -1);
+      double newLeft = cloud.left + dx;
+      bool outOfScreen = cloud.leftToRight
+          ? newLeft > size.width
+          : newLeft + cloud.width < 0;
+      if (outOfScreen) {
+        // Rimpiazza la nuvola con una nuova che parte dall'altro lato
+        final Random random = Random(_sessionSeed + 888888 + DateTime.now().millisecondsSinceEpoch + i);
+        String asset = [
+          'assets/images/clouds/nuvola1.png',
+          'assets/images/clouds/nuvola2.png',
+          'assets/images/clouds/nuvola3.png',
+          'assets/images/clouds/nuvola4.png',
+          'assets/images/clouds/nuvola5.png',
+        ][random.nextInt(5)];
+        double baseWidth = 200.0;
+        double scale = 0.7 + random.nextDouble() * 0.3;
+        double width = baseWidth * scale;
+        double height = width * (0.45 + random.nextDouble() * 0.2);
+        bool fromLeft = !cloud.leftToRight;
+        double left = fromLeft ? -width - random.nextDouble() * 100 : size.width + random.nextDouble() * 100;
+        double top = random.nextDouble() * ((size.height * 0.5) - height);
+        double opacity = 0.65 + random.nextDouble() * 0.35;
+        double speed = 1.2 + random.nextDouble() * 1.6;
+        bool leftToRight = fromLeft;
+        _clouds[i] = _CloudData(
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+          asset: asset,
+          zIndex: 1,
+          opacity: opacity,
+          speed: speed,
+          leftToRight: leftToRight,
+          id: random.nextInt(1 << 32),
+        );
+      } else {
+        _clouds[i] = cloud.copyWith(left: newLeft);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final Size size = widget.screenSize ?? MediaQuery.of(context).size;
+    _moveClouds(size);
+
     List<Widget> children = _stars.map((star) {
       return Positioned(
         left: star.left,
@@ -201,6 +333,32 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
         ),
       ));
     }
+
+    // --- NUVOLE --- (sempre davanti alla luna, ora più scure e animate)
+    for (final cloud in _clouds) {
+      children.add(Positioned(
+        left: cloud.left,
+        top: cloud.top,
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.mode(
+            Color(0xFFCACACA),
+            BlendMode.modulate,
+          ),
+          child: Opacity(
+            opacity: cloud.opacity,
+            child: Image.asset(
+              cloud.asset,
+              width: cloud.width,
+              height: cloud.height,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ));
+    }
+
+    // --- STELLE CADENTI ---
+    final now = DateTime.now();
 
     // Visualizza i tre prati solo se il counter è almeno 450
     if (widget.counter >= 450) {
@@ -324,6 +482,44 @@ class _FlowerData {
     required this.scale,
     required this.asset,
   });
+}
+
+class _CloudData {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final String asset;
+  final int zIndex;
+  final double opacity;
+  final double speed;
+  final bool leftToRight;
+  final int id;
+  _CloudData({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.asset,
+    required this.zIndex,
+    required this.opacity,
+    required this.speed,
+    required this.leftToRight,
+    required this.id,
+  });
+
+  _CloudData copyWith({double? left}) => _CloudData(
+        left: left ?? this.left,
+        top: top,
+        width: width,
+        height: height,
+        asset: asset,
+        zIndex: zIndex,
+        opacity: opacity,
+        speed: speed,
+        leftToRight: leftToRight,
+        id: id,
+      );
 }
 
 class _SharpMultiPointStarPainter extends CustomPainter {

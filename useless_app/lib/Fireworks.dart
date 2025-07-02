@@ -224,7 +224,7 @@ class FusePainter extends CustomPainter {
     double drawProgress = showFullTrail ? 1.0 : progress;
     if (drawProgress <= 0.001) return;
 
-    int steps = 300;
+    int steps = 200;
     double fadeLength = 0.35;
     double fadeStart = drawProgress * (1 - fadeLength);
     double fadeEnd = drawProgress;
