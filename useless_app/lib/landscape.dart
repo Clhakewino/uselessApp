@@ -449,6 +449,19 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
         ),
       ));
 
+      // --- CASTELLO tra prato3 e prato2, solo se counter >= 1200 ---
+      if (widget.counter >= 1200) {
+        children.add(Positioned(
+          left: -100,
+          bottom: 40, // più in basso rispetto a prima
+          child: Image.asset(
+            'assets/images/castello.png',
+            width: 200, // più piccolo
+            fit: BoxFit.contain,
+          ),
+        ));
+      }
+
       // Prato 2 (in mezzo)
       children.add(Positioned(
         left: 0,

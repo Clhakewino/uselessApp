@@ -91,6 +91,7 @@ flutter:
     - assets/images/clouds/nuvola3.png
     - assets/images/clouds/nuvola4.png
     - assets/images/clouds/nuvola5.png
+    - assets/images/castello.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
