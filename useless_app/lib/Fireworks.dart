@@ -241,9 +241,9 @@ class FusePainter extends CustomPainter {
       double alpha;
       if (t1 >= fadeStart) {
         double fadeT = ((t1 - fadeStart) / (fadeEnd - fadeStart)).clamp(0.0, 1.0);
-        alpha = (1.0 - fadeT) * 0.85 * fade;
+        alpha = (1.0 - fadeT) * 0.1 * fade;
       } else {
-        alpha = 0.85 * fade;
+        alpha = 0.1 * fade;
       }
 
       final paint = Paint()
@@ -263,12 +263,12 @@ class FusePainter extends CustomPainter {
       double outerRadius = (2.5 + rand * 1.4) + 2.2;
 
       final colorPaint = Paint()
-        ..color = fuseColor.withValues(alpha: 0.7 * fade)
+        ..color = fuseColor.withValues(alpha: 0.45 * fade)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(currentFuseTip, outerRadius, colorPaint);
 
       final sparkPaint = Paint()
-        ..color = fuseColor.withValues(alpha: fade)
+        ..color = fuseColor.withValues(alpha: 0.6 * fade)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(currentFuseTip, innerRadius, sparkPaint);
     }

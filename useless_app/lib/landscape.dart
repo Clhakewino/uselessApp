@@ -24,6 +24,9 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
   int _lastStarCount = 0;
   int _lastFlowerCount = 0;
   late int _sessionSeed;
+  Offset? _moonPosition;
+  String? _moonAsset;
+  double? _moonRotation;
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeGenerateStars(force: true);
       _maybeGenerateFlowers(force: true);
+      _maybeGenerateMoon(force: true);
     });
   }
 
@@ -41,6 +45,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     super.didUpdateWidget(oldWidget);
     _maybeGenerateStars();
     _maybeGenerateFlowers();
+    _maybeGenerateMoon();
   }
 
   @override
@@ -48,6 +53,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     super.didChangeDependencies();
     _maybeGenerateStars(force: true);
     _maybeGenerateFlowers(force: true);
+    _maybeGenerateMoon(force: true);
   }
 
   void _maybeGenerateStars({bool force = false}) {
@@ -70,6 +76,38 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _flowers.length != flowerCount || _lastSize != size) {
       _generateFlowers(flowerCount, size);
+    }
+  }
+
+  void _maybeGenerateMoon({bool force = false}) {
+    if (widget.counter < 1500) {
+      if (_moonPosition != null || _moonAsset != null || _moonRotation != null) {
+        _moonPosition = null;
+        _moonAsset = null;
+        _moonRotation = null;
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+    final Size size = widget.screenSize ?? MediaQuery.of(context).size;
+    if (_moonPosition == null || _moonAsset == null || _moonRotation == null || force || _lastSize != size) {
+      final Random random = Random(_sessionSeed + 999999);
+      // Scegli asset random
+      final List<String> moonAssets = [
+        'assets/images/moon/luna1.png',
+        'assets/images/moon/luna2.png',
+        'assets/images/moon/luna3.png',
+      ];
+      _moonAsset = moonAssets[random.nextInt(moonAssets.length)];
+      // Posizione random nella metà superiore dello schermo
+      final double moonWidth = 90;
+      final double moonHeight = 90;
+      final double left = random.nextDouble() * (size.width - moonWidth);
+      final double top = random.nextDouble() * ((size.height * 0.5) - moonHeight);
+      _moonPosition = Offset(left, top);
+      _moonRotation = (random.nextDouble() * 30 - 15) * (pi / 180);
+      _lastSize = size;
+      if (mounted) setState(() {});
     }
   }
 
@@ -146,6 +184,23 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
         ),
       );
     }).toList();
+
+    // --- LUNA ---
+    if (_moonPosition != null && _moonAsset != null) {
+      children.add(Positioned(
+        left: _moonPosition!.dx,
+        top: _moonPosition!.dy,
+        child: Transform.rotate(
+          angle: _moonRotation ?? 0,
+          child: Image.asset(
+            _moonAsset!,
+            width: 90,
+            height: 90,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ));
+    }
 
     // Visualizza i tre prati solo se il counter è almeno 450
     if (widget.counter >= 450) {

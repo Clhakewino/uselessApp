@@ -83,6 +83,9 @@ flutter:
     - assets/images/flawers/fiore3.png
     - assets/images/flawers/fiore4.png
     - assets/images/flawers/fiore5.png
+    - assets/images/moon/luna1.png
+    - assets/images/moon/luna2.png
+    - assets/images/moon/luna3.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
