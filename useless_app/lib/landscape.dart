@@ -19,8 +19,10 @@ class LandscapeBackground extends StatefulWidget {
 
 class _LandscapeBackgroundState extends State<LandscapeBackground> {
   List<_StarData> _stars = [];
+  List<_FlowerData> _flowers = [];
   Size? _lastSize;
   int _lastStarCount = 0;
+  int _lastFlowerCount = 0;
   late int _sessionSeed;
 
   @override
@@ -30,6 +32,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     _sessionSeed = DateTime.now().millisecondsSinceEpoch & 0x7FFFFFFF;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeGenerateStars(force: true);
+      _maybeGenerateFlowers(force: true);
     });
   }
 
@@ -37,12 +40,14 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
   void didUpdateWidget(LandscapeBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
     _maybeGenerateStars();
+    _maybeGenerateFlowers();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _maybeGenerateStars(force: true);
+    _maybeGenerateFlowers(force: true);
   }
 
   void _maybeGenerateStars({bool force = false}) {
@@ -50,6 +55,21 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _stars.length != starCount || _lastSize != size) {
       _generateStars(starCount, size);
+    }
+  }
+
+  void _maybeGenerateFlowers({bool force = false}) {
+    if (widget.counter < 600) {
+      if (_flowers.isNotEmpty) {
+        _flowers = [];
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+    final int flowerCount = 1 + ((widget.counter - 600) ~/ 350);
+    final Size size = widget.screenSize ?? MediaQuery.of(context).size;
+    if (force || _flowers.length != flowerCount || _lastSize != size) {
+      _generateFlowers(flowerCount, size);
     }
   }
 
@@ -72,6 +92,41 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
       );
     });
     _lastStarCount = starCount;
+    _lastSize = size;
+    if (mounted) setState(() {});
+  }
+
+  void _generateFlowers(int flowerCount, Size size) {
+    final Random random = Random(_sessionSeed + 424242); // seed diverso da stelle
+    final List<String> flowerAssets = [
+      'assets/images/flawers/fiore1.png',
+      'assets/images/flawers/fiore2.png',
+      'assets/images/flawers/fiore3.png',
+      'assets/images/flawers/fiore4.png',
+      'assets/images/flawers/fiore5.png',
+    ];
+    _flowers = List.generate(flowerCount, (i) {
+      int zIndex = random.nextInt(3); // 0 = dietro prato3, 1 = tra prato2 e prato3, 2 = tra prato1 e prato2
+      double left = random.nextDouble() * (size.width - 80);
+      double bottom;
+      if (zIndex == 0) {
+        double minBottom = size.height * 0.04;
+        double maxBottom = size.height * 0.045;
+        bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
+      } else if (zIndex == 1) {
+        double minBottom = size.height * 0.02;
+        double maxBottom = size.height * 0.03;
+        bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
+      } else {
+        double minBottom = -10;
+        double maxBottom = size.height * 0.00;
+        bottom = minBottom + random.nextDouble() * (maxBottom - minBottom);
+      }
+      double scale = 0.3 + random.nextDouble() * 0.3;
+      String asset = flowerAssets[random.nextInt(flowerAssets.length)];
+      return _FlowerData(left: left, bottom: bottom, zIndex: zIndex, scale: scale, asset: asset);
+    });
+    _lastFlowerCount = flowerCount;
     _lastSize = size;
     if (mounted) setState(() {});
   }
@@ -132,6 +187,51 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> {
           fit: BoxFit.fitWidth,
         ),
       ));
+
+      // FIORI: usa _flowers generati solo se counter >= 600
+      if (_flowers.isNotEmpty) {
+        // Ordina per zIndex per il corretto stacking (0 dietro, 1 in mezzo, 2 davanti)
+        final sortedFlowers = List<_FlowerData>.from(_flowers)
+          ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+        for (final flower in sortedFlowers) {
+          int insertIndex;
+          if (flower.zIndex == 0) {
+            insertIndex = children.indexWhere((w) =>
+                w is Positioned &&
+                (w.child is Image &&
+                    (w.child as Image).image is AssetImage &&
+                    ((w.child as Image).image as AssetImage).assetName == 'assets/images/prato3.png'));
+          } else if (flower.zIndex == 1) {
+            insertIndex = children.indexWhere((w) =>
+                w is Positioned &&
+                (w.child is Image &&
+                    (w.child as Image).image is AssetImage &&
+                    ((w.child as Image).image as AssetImage).assetName == 'assets/images/prato3.png')) + 1;
+          } else {
+            insertIndex = children.indexWhere((w) =>
+                w is Positioned &&
+                (w.child is Image &&
+                    (w.child as Image).image is AssetImage &&
+                    ((w.child as Image).image as AssetImage).assetName == 'assets/images/prato2.png')) + 1;
+          }
+          children.insert(
+            insertIndex,
+            Positioned(
+              left: flower.left,
+              bottom: flower.bottom,
+              child: Transform.scale(
+                scale: flower.scale,
+                child: Image.asset(
+                  flower.asset,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          );
+        }
+      }
     }
 
     return Stack(
@@ -152,6 +252,22 @@ class _StarData {
     required this.size,
     required this.points,
     required this.angle,
+  });
+}
+
+// Aggiorna la classe _FlowerData per includere l'asset
+class _FlowerData {
+  final double left;
+  final double bottom;
+  final int zIndex;
+  final double scale;
+  final String asset;
+  _FlowerData({
+    required this.left,
+    required this.bottom,
+    required this.zIndex,
+    required this.scale,
+    required this.asset,
   });
 }
 

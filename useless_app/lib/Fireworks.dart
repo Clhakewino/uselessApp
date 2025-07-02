@@ -41,13 +41,15 @@ class FireworkEvent {
     required Offset initialFireworkOrigin,
     required Size screenSize,
     required this.particleCount,
+    Offset? customEndPoint, // aggiunto parametro opzionale
   })  : id = UniqueKey(),
         fuseColor = fuseColors[random.nextInt(fuseColors.length)],
         fuseStartPoint = initialFireworkOrigin,
-        fuseEndPoint = Offset(
-          (0.05 + random.nextDouble() * 0.9) * screenSize.width,
-          random.nextDouble() * screenSize.height * 0.80 + 100.0,
-        ),
+        fuseEndPoint = customEndPoint ??
+            Offset(
+              (0.05 + random.nextDouble() * 0.9) * screenSize.width,
+              random.nextDouble() * screenSize.height * 0.80 + 100.0,
+            ),
         fuseControlPoint = Offset(
           (initialFireworkOrigin.dx + (random.nextDouble() * screenSize.width)) / 2 +
               (random.nextDouble() - 0.5) * screenSize.width * 0.3,

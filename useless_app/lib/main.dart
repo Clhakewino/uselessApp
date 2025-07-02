@@ -193,7 +193,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                   ],
                 ),
                 child: const Text(
-                  'Iglie!',
+                  '',
                   style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,

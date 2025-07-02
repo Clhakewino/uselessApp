@@ -78,6 +78,11 @@ flutter:
     - assets/images/prato1.png
     - assets/images/prato2.png
     - assets/images/prato3.png
+    - assets/images/flawers/fiore1.png
+    - assets/images/flawers/fiore2.png
+    - assets/images/flawers/fiore3.png
+    - assets/images/flawers/fiore4.png
+    - assets/images/flawers/fiore5.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
