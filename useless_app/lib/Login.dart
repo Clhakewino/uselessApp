@@ -131,7 +131,7 @@ class _LoginDialogState extends State<LoginDialog> {
                             )
                           : ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFD700),
+                                backgroundColor: const Color(0xFFC5A700),
                                 foregroundColor: Colors.black,
                                 minimumSize: const Size.fromHeight(40),
                               ),

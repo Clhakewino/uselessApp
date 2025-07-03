@@ -258,26 +258,10 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
               ],
             ),
           ),
-          // --- Bottone login e leaderboard in alto a destra ---
+          // --- Bottone leaderboard a sinistra e login a destra ---
           Positioned(
             top: 48,
-            right: 16 + 52 + 12, // leaderboard width + spazio
-            child: GestureDetector(
-              onTap: () {
-                ButtonsManager.onLoginTap(context);
-              },
-              child: SizedBox(
-                width: 52,
-                height: 52,
-                child: CustomPaint(
-                  painter: _LoginIconPainter(),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 48,
-            right: 16,
+            left: 16,
             child: GestureDetector(
               key: _buttonKey,
               behavior: HitTestBehavior.translucent,
@@ -288,6 +272,22 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                 'assets/images/icons/leaderboardIcon.png',
                 width: 52,
                 height: 52,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 48,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                ButtonsManager.onLoginTap(context);
+              },
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: CustomPaint(
+                  painter: _LoginIconPainter(),
+                ),
               ),
             ),
           ),
