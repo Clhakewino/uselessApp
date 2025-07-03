@@ -59,6 +59,29 @@ class _LoginDialogState extends State<LoginDialog> {
             ),
           );
         }
+      } else if (msg.contains('invalid-email')) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: const Text(
+                'Invalid email',
+                style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+              ),
+              content: const Text(
+                'The email you entered is not valid.',
+                style: TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK', style: TextStyle(color: Colors.white70)),
+                ),
+              ],
+            ),
+          );
+        }
       } else {
         setState(() {
           _error = msg.replaceFirst('Exception: ', '');
