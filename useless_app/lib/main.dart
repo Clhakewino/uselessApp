@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'buttonsManager.dart';
 import 'landscape.dart';
 import 'Login.dart';
+import 'services/auth.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -57,6 +58,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   Timer? _holdDelayTimer;
   bool _isHolding = false;
   Offset? _lastTapPosition;
+  final Auth _auth = Auth();
 
   void _startFireworkTimer() {
     _fireworkTimer?.cancel();
@@ -136,6 +138,38 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
       _fireworks.add(firework);
       firework.start();
     });
+  }
+
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text(
+          'Confirm logout',
+          style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout', style: TextStyle(color: Color(0xFFFFD700))),
+          ),
+        ],
+      ),
+    );
+    if (result == true) {
+      await _auth.signOut();
+      if (mounted) setState(() {});
+    }
   }
 
   @override
@@ -275,20 +309,38 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
               ),
             ),
           ),
+          // --- Bottone login/logout a destra ---
           Positioned(
             top: 48,
             right: 16,
-            child: GestureDetector(
-              onTap: () {
-                ButtonsManager.onLoginTap(context);
+            child: StreamBuilder(
+              stream: _auth.authStateChanges,
+              builder: (context, snapshot) {
+                final loggedIn = snapshot.hasData;
+                if (loggedIn) {
+                  return GestureDetector(
+                    onTap: () async {
+                      await _showLogoutDialog(context);
+                    },
+                    child: Image.asset(
+                      'assets/images/icons/logoutIcon.png',
+                      width: 52,
+                      height: 52,
+                    ),
+                  );
+                } else {
+                  return GestureDetector(
+                    onTap: () {
+                      ButtonsManager.onLoginTap(context);
+                    },
+                    child: Image.asset(
+                      'assets/images/icons/loginIcon.png',
+                      width: 52,
+                      height: 52,
+                    ),
+                  );
+                }
               },
-              child: SizedBox(
-                width: 52,
-                height: 52,
-                child: CustomPaint(
-                  painter: _LoginIconPainter(),
-                ),
-              ),
             ),
           ),
         ],
@@ -305,56 +357,4 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     }
     super.dispose();
   }
-}
-
-// AGGIUNGI IN FONDO AL FILE:
-class _LoginIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint bgPaint = Paint()
-      ..color = Colors.blue[700]!
-      ..style = PaintingStyle.fill;
-    final double radius = size.width / 2;
-    canvas.drawCircle(Offset(radius, radius), radius, bgPaint);
-
-    // Corpo (rettangolo arrotondato)
-    final Paint bodyPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final double bodyWidth = size.width * 0.32;
-    final double bodyHeight = size.height * 0.38;
-    final double bodyLeft = (size.width - bodyWidth) / 2;
-    final double bodyTop = size.height * 0.52;
-    final RRect bodyRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(bodyLeft, bodyTop, bodyWidth, bodyHeight),
-      Radius.circular(bodyWidth * 0.5),
-    );
-    canvas.drawRRect(bodyRect, bodyPaint);
-
-    // Testa (cerchio)
-    final double headRadius = size.width * 0.17;
-    final Offset headCenter = Offset(size.width / 2, size.height * 0.32);
-    canvas.drawCircle(headCenter, headRadius, bodyPaint);
-
-    // Braccia (archi)
-    final Paint armPaint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = size.width * 0.09
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final Rect leftArmRect = Rect.fromCircle(
-      center: Offset(size.width * 0.5, size.height * 0.62),
-      radius: size.width * 0.23,
-    );
-    canvas.drawArc(leftArmRect, 3.7, 1.2, false, armPaint);
-
-    final Rect rightArmRect = Rect.fromCircle(
-      center: Offset(size.width * 0.5, size.height * 0.62),
-      radius: size.width * 0.23,
-    );
-    canvas.drawArc(rightArmRect, 4.8, 1.2, false, armPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

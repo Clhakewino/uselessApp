@@ -41,12 +41,19 @@ class _LoginDialogState extends State<LoginDialog> {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Wrong credentials'),
-              content: const Text('Please check that your credentials are correct.'),
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: const Text(
+                'Wrong credentials',
+                style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+              ),
+              content: const Text(
+                'Please check that your credentials are correct.',
+                style: TextStyle(color: Colors.white),
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
+                  child: const Text('OK', style: TextStyle(color: Colors.white70)),
                 ),
               ],
             ),
