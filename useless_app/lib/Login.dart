@@ -38,7 +38,30 @@ class _LoginDialogState extends State<LoginDialog> {
       if (mounted) Navigator.of(context).pop();
     } on Exception catch (e) {
       final msg = e.toString();
-      if (msg.contains('invalid-credential')) {
+      if (msg.contains('network-request-failed')) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: const Text(
+                'Error',
+                style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+              ),
+              content: const Text(
+                'Unable to complete the request. Check your connection and try again.',
+                style: TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK', style: TextStyle(color: Colors.white70)),
+                ),
+              ],
+            ),
+          );
+        }
+      } else if (msg.contains('invalid-credential')) {
         if (mounted) {
           showDialog(
             context: context,
