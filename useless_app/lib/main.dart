@@ -5,6 +5,7 @@ import 'Fireworks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'buttonsManager.dart';
 import 'landscape.dart';
+import 'Login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -245,7 +246,23 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
               ],
             ),
           ),
-          // --- Bottone leaderboard in alto a destra (di poco più in basso) ---
+          // --- Bottone login e leaderboard in alto a destra ---
+          Positioned(
+            top: 48,
+            right: 16 + 52 + 12, // leaderboard width + spazio
+            child: GestureDetector(
+              onTap: () {
+                ButtonsManager.onLoginTap(context);
+              },
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: CustomPaint(
+                  painter: _LoginIconPainter(),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: 48,
             right: 16,
@@ -276,4 +293,56 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     }
     super.dispose();
   }
+}
+
+// AGGIUNGI IN FONDO AL FILE:
+class _LoginIconPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint bgPaint = Paint()
+      ..color = Colors.blue[700]!
+      ..style = PaintingStyle.fill;
+    final double radius = size.width / 2;
+    canvas.drawCircle(Offset(radius, radius), radius, bgPaint);
+
+    // Corpo (rettangolo arrotondato)
+    final Paint bodyPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final double bodyWidth = size.width * 0.32;
+    final double bodyHeight = size.height * 0.38;
+    final double bodyLeft = (size.width - bodyWidth) / 2;
+    final double bodyTop = size.height * 0.52;
+    final RRect bodyRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(bodyLeft, bodyTop, bodyWidth, bodyHeight),
+      Radius.circular(bodyWidth * 0.5),
+    );
+    canvas.drawRRect(bodyRect, bodyPaint);
+
+    // Testa (cerchio)
+    final double headRadius = size.width * 0.17;
+    final Offset headCenter = Offset(size.width / 2, size.height * 0.32);
+    canvas.drawCircle(headCenter, headRadius, bodyPaint);
+
+    // Braccia (archi)
+    final Paint armPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = size.width * 0.09
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final Rect leftArmRect = Rect.fromCircle(
+      center: Offset(size.width * 0.5, size.height * 0.62),
+      radius: size.width * 0.23,
+    );
+    canvas.drawArc(leftArmRect, 3.7, 1.2, false, armPaint);
+
+    final Rect rightArmRect = Rect.fromCircle(
+      center: Offset(size.width * 0.5, size.height * 0.62),
+      radius: size.width * 0.23,
+    );
+    canvas.drawArc(rightArmRect, 4.8, 1.2, false, armPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

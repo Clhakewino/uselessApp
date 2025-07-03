@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ControlCounters.dart';
 
 class ButtonsManager {
   static void onLeaderboardTap(BuildContext context) {
@@ -115,5 +116,9 @@ class ButtonsManager {
         );
       },
     );
+  }
+
+  static void onLoginTap(BuildContext context) {
+    ControlCounters.onLoginTap(context);
   }
 }
