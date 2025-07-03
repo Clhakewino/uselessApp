@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "767368546303",
+    "project_id": "uselessapp-553d3",
+    "storage_bucket": "uselessapp-553d3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:767368546303:android:82215d2d2463c448f1c9ca",
+        "android_client_info": {
+          "package_name": "com.bruyin.useless_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVtwJxLoRHCnuVBVTeiHdleSsjwQbkg2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
