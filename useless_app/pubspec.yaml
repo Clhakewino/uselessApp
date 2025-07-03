@@ -82,6 +82,7 @@ flutter:
     - assets/sounds/scoppio2.mp3
     - assets/sounds/scoppio3.mp3
     - assets/sounds/scoppio4.mp3
+    - assets/sounds/pacefulTheme.mp3
     - assets/images/prato1.png
     - assets/images/prato2.png
     - assets/images/prato3.png

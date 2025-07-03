@@ -7,6 +7,7 @@ import 'buttonsManager.dart';
 import 'landscape.dart';
 import 'Login.dart';
 import 'services/auth.dart';
+import 'Sounds.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -48,7 +49,7 @@ class InitialScreen extends StatefulWidget {
   State<InitialScreen> createState() => _InitialScreenState();
 }
 
-class _InitialScreenState extends State<InitialScreen> with TickerProviderStateMixin {
+class _InitialScreenState extends State<InitialScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   final List<FireworkEvent> _fireworks = [];
   final Random _random = Random();
   final GlobalKey _buttonKey = GlobalKey();
@@ -83,6 +84,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCounter().then((_) {
       if (mounted) setState(() {});
     });
@@ -107,6 +109,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
         await _saveCounter();
       }
     });
+    Sounds.playBackgroundMusic();
   }
 
   Future<void> _loadCounter() async {
@@ -388,6 +391,17 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
       f.dispose();
     }
     _authSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    Sounds.stopBackgroundMusic();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      Sounds.pauseBackgroundMusic();
+    } else if (state == AppLifecycleState.resumed) {
+      Sounds.resumeBackgroundMusic();
+    }
   }
 }
