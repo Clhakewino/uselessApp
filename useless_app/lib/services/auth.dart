@@ -16,9 +16,14 @@ class Auth {
     }
   }
 
-  Future<void> createUserWithEmailAndPassword({required String email, required String password}) async {
+  Future<void> createUserWithEmailAndPassword({required String email, required String password, required String username}) async {
     try {
-      await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+      final cred = await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+      // Salva username su Firestore
+      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+        'name': username,
+        'email': email,
+      }, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to create User: $e');
     }
@@ -36,7 +41,9 @@ class Auth {
     final user = _firebaseAuth.currentUser;
     if (user == null) return;
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-      {'counter': counter},
+      {
+        'counter': counter,
+      },
       SetOptions(merge: true),
     );
   }

@@ -12,6 +12,7 @@ class _LoginDialogState extends State<LoginDialog> {
   bool _isLogin = true;
   String _email = '';
   String _password = '';
+  String _username = '';
   String? _error;
   bool _loading = false;
   final Auth _auth = Auth();
@@ -31,6 +32,7 @@ class _LoginDialogState extends State<LoginDialog> {
         await _auth.createUserWithEmailAndPassword(
           email: _email.trim(),
           password: _password,
+          username: _username.trim(),
         );
       }
       if (mounted) Navigator.of(context).pop();
@@ -117,6 +119,27 @@ class _LoginDialogState extends State<LoginDialog> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      if (!_isLogin)
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            labelStyle: TextStyle(color: Colors.white70),
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white24),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Color(0xFFFFD700)),
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (v) => _username = v,
+                          validator: (v) {
+                            if (_isLogin) return null;
+                            if (v == null || v.trim().isEmpty) return 'Username required';
+                            return null;
+                          },
+                        ),
+                      if (!_isLogin) const SizedBox(height: 8),
                       TextFormField(
                         decoration: const InputDecoration(
                           labelText: 'Email',
