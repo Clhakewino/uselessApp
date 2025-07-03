@@ -59,6 +59,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
   bool _isHolding = false;
   Offset? _lastTapPosition;
   final Auth _auth = Auth();
+  StreamSubscription? _authSub;
 
   void _startFireworkTimer() {
     _fireworkTimer?.cancel();
@@ -84,6 +85,27 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     super.initState();
     _loadCounter().then((_) {
       if (mounted) setState(() {});
+    });
+    // Ascolta cambi login/logout per caricare counter da Firestore SOLO al login e azzera al logout
+    _authSub = _auth.authStateChanges.listen((user) async {
+      if (user != null) {
+        final remoteCounter = await _auth.getCounterFromFirestore();
+        if (remoteCounter != null && remoteCounter > _counter) {
+          setState(() {
+            _counter = remoteCounter;
+          });
+          await _saveCounter();
+        } else if (remoteCounter == null) {
+          // Primo login, salva il counter locale su Firestore
+          await _auth.saveCounterToFirestore(_counter);
+        }
+      } else {
+        // Logout: azzera il counter sia in memoria che localmente
+        setState(() {
+          _counter = 0;
+        });
+        await _saveCounter();
+      }
     });
   }
 
@@ -117,6 +139,11 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
       _counter++;
     });
     _saveCounter();
+
+    // Salva su Firebase ogni 100
+    if (_auth.currentUser != null && _counter % 100 == 0) {
+      _auth.saveCounterToFirestore(_counter);
+    }
 
     final firework = FireworkEvent(
       vsync: this,
@@ -224,6 +251,11 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
                 _counter++;
               });
               _saveCounter();
+
+              // Salva su Firebase ogni 100
+              if (_auth.currentUser != null && _counter % 100 == 0) {
+                _auth.saveCounterToFirestore(_counter);
+              }
 
               final firework = FireworkEvent(
                 vsync: this,
@@ -355,6 +387,7 @@ class _InitialScreenState extends State<InitialScreen> with TickerProviderStateM
     for (var f in _fireworks) {
       f.dispose();
     }
+    _authSub?.cancel();
     super.dispose();
   }
 }
