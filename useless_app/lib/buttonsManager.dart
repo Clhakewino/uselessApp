@@ -119,6 +119,10 @@ class ButtonsManager {
   }
 
   static void onLoginTap(BuildContext context) {
-    ControlCounters.onLoginTap(context);
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Permette di chiudere tappando fuori
+      builder: (context) => LoginDialog(),
+    );
   }
 }

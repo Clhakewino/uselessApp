@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'services/auth.dart';
 
 class LoginDialog extends StatefulWidget {
   @override
@@ -13,6 +14,7 @@ class _LoginDialogState extends State<LoginDialog> {
   String _password = '';
   String? _error;
   bool _loading = false;
+  final Auth _auth = Auth();
 
   Future<void> _submit() async {
     setState(() {
@@ -21,21 +23,40 @@ class _LoginDialogState extends State<LoginDialog> {
     });
     try {
       if (_isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        await _auth.signInWithEmailAndPassword(
           email: _email.trim(),
           password: _password,
         );
       } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        await _auth.createUserWithEmailAndPassword(
           email: _email.trim(),
           password: _password,
         );
       }
       if (mounted) Navigator.of(context).pop();
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+    } on Exception catch (e) {
+      final msg = e.toString();
+      if (msg.contains('invalid-credential')) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Wrong credentials'),
+              content: const Text('Please check that your credentials are correct.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _error = msg.replaceFirst('Exception: ', '');
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -45,79 +66,113 @@ class _LoginDialogState extends State<LoginDialog> {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        child: Card(
-          color: Colors.grey[900],
-          elevation: 8,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_isLogin ? 'Login' : 'Registrati', style: const TextStyle(fontSize: 22, color: Colors.white)),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                    keyboardType: TextInputType.emailAddress,
-                    onChanged: (v) => _email = v,
-                    validator: (v) => v != null && v.contains('@') ? null : 'Email non valida',
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                    obscureText: true,
-                    onChanged: (v) => _password = v,
-                    validator: (v) => v != null && v.length >= 6 ? null : 'Minimo 6 caratteri',
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
-                  ],
-                  const SizedBox(height: 16),
-                  _loading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState?.validate() ?? false) {
-                              _submit();
-                            }
-                          },
-                          child: Text(_isLogin ? 'Login' : 'Registrati'),
+        child: Dialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isLogin ? 'Login' : 'Register',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFFD700),
                         ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isLogin = !_isLogin;
-                        _error = null;
-                      });
-                    },
-                    child: Text(
-                      _isLogin
-                          ? 'Non hai un account? Registrati'
-                          : 'Hai già un account? Login',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFFFD700)),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: TextInputType.emailAddress,
+                        onChanged: (v) => _email = v,
+                        validator: (v) => v != null && v.contains('@') ? null : 'Invalid email',
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFFFD700)),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        obscureText: true,
+                        onChanged: (v) => _password = v,
+                        validator: (v) => v != null && v.length >= 6 ? null : 'Min 6 characters',
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 8),
+                        Text(_error!, style: const TextStyle(color: Colors.red)),
+                      ],
+                      const SizedBox(height: 16),
+                      _loading
+                          ? const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+                            )
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                minimumSize: const Size.fromHeight(40),
+                              ),
+                              onPressed: () {
+                                if (_formKey.currentState?.validate() ?? false) {
+                                  _submit();
+                                }
+                              },
+                              child: Text(_isLogin ? 'Login' : 'Register'),
+                            ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLogin = !_isLogin;
+                            _error = null;
+                          });
+                        },
+                        child: Text(
+                          _isLogin
+                              ? "Don't have an account? Sign up"
+                              : "Already have an account? Login",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Chiudi', style: TextStyle(color: Colors.white54)),
-                  ),
-                ],
+                ),
               ),
-            ),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
-
