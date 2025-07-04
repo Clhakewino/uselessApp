@@ -28,6 +28,21 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
   Offset? _lastTapPosition;
   final Auth _auth = Auth();
   StreamSubscription? _authSub;
+  bool isPlayingMusic = true;
+
+  final String firstImagePath = 'assets/images/icons/musicIcon.png';
+  final String secondImagePath = 'assets/images/icons/musicOffIcon.png';
+
+  void _toggleImage() {
+    setState(() {
+      if (isPlayingMusic) {
+        Sounds.pauseBackgroundMusic();
+      } else {
+        Sounds.resumeBackgroundMusic();
+      }
+      isPlayingMusic = !isPlayingMusic;
+    });
+  }
 
   void _startFireworkTimer() {
     _fireworkTimer?.cancel();
@@ -74,6 +89,7 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
       }
     });
     Sounds.playBackgroundMusic();
+    isPlayingMusic = true;
   }
 
   Future<void> _loadCounter() async {
@@ -167,6 +183,7 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
 
   @override
   Widget build(BuildContext context) {
+    String currentImage = isPlayingMusic ? firstImagePath : secondImagePath;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -333,6 +350,22 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
                   );
                 }
               },
+            ),
+          ),
+          Positioned(
+            top: 116,
+            right: 16,
+            child: GestureDetector(
+              onTap: _toggleImage,
+              child: Image.asset(
+                currentImage,
+                width: 52,
+                height: 52,
+                errorBuilder: (context, error, stackTrace) {
+                  print("Errore caricamento immagine: $currentImage, $error");
+                  return Icon(Icons.error, size: 52, color: Colors.red);
+                },
+              ),
             ),
           ),
         ],

@@ -4,6 +4,9 @@ import 'Login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ButtonsManager {
+  final String musicOnIconPath = 'assets/images/icons/musicIcon.png';
+  final String musicOffIconPath = 'assets/images/icons/musicOffIcon.png';
+
   static Future<List<Map<String, dynamic>>> fetchLeaderboard() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('users')

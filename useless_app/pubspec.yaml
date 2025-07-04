@@ -105,6 +105,8 @@ flutter:
     - assets/images/icons/loginIcon.png
     - assets/images/icons/logoutIcon.png
     - assets/videos/alberoIlluminato.mp4
+    - assets/images/icons/musicIcon.png
+    - assets/images/icons/musicOffIcon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
