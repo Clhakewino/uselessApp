@@ -391,7 +391,9 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
     if (state == AppLifecycleState.paused) {
       Sounds.pauseBackgroundMusic();
     } else if (state == AppLifecycleState.resumed) {
-      Sounds.resumeBackgroundMusic();
+      if (isPlayingMusic) {
+        Sounds.resumeBackgroundMusic();
+      }
     }
   }
 }
