@@ -107,6 +107,29 @@ class _LoginDialogState extends State<LoginDialog> {
             ),
           );
         }
+      } if (msg.contains('username_already_taken')) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: const Text(
+                'Username Unavailable',
+                style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+              ),
+              content: const Text(
+                'The username you entered is already taken. Please choose a different one.',
+                style: TextStyle(color: Colors.white),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK', style: TextStyle(color: Colors.white70)),
+                ),
+              ],
+            ),
+          );
+        }
       } else {
         setState(() {
           _error = msg.replaceFirst('Exception: ', '');
@@ -196,10 +219,6 @@ class _LoginDialogState extends State<LoginDialog> {
                         onChanged: (v) => _password = v,
                         validator: (v) => v != null && v.length >= 6 ? null : 'Min 6 characters',
                       ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 8),
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
-                      ],
                       const SizedBox(height: 16),
                       _loading
                           ? const CircularProgressIndicator(

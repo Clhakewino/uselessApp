@@ -18,15 +18,13 @@ class Auth {
 
   Future<void> createUserWithEmailAndPassword({required String email, required String password, required String username}) async {
     try {
-      bool usernameIsTaken = await isUsernameTaken(username);
-      if (!usernameIsTaken) {
-        final cred = await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
+     await isUsernameTaken(username);
+     final cred = await _firebaseAuth.createUserWithEmailAndPassword(email: email, password: password);
         // Salva username su Firestore
-        await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
-          'name': username,
-          'email': email,
-        }, SetOptions(merge: true));
-      }
+     await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+       'name': username,
+       'email': email,
+     }, SetOptions(merge: true));
     } catch (e) {
       throw Exception('Failed to create User: $e');
     }
@@ -72,15 +70,14 @@ class Auth {
           .limit(1);
       final QuerySnapshot querySnapshot = await query.get();
       if (querySnapshot.docs.isNotEmpty) {
-        print('Nome utente "$proposedUsername" già in uso.');
-        return true;
+        throw Exception('"$proposedUsername" username_already_taken.');
       } else {
         print('Nome utente "$proposedUsername" disponibile.');
         return false;
       }
     } catch (e) {
       print('Errore durante la verifica del nome utente: $e');
-      return true;
+       rethrow;
     }
   }
 }
