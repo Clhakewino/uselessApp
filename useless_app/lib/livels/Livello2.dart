@@ -20,7 +20,6 @@ class _Livello2State extends State<Livello2> with TickerProviderStateMixin, Widg
   final List<FireworkEvent> _fireworks = [];
   final Random _random = Random();
   final GlobalKey _buttonKey = GlobalKey();
-  bool _isButtonPressed = false;
   int _counter = 0;
   Timer? _fireworkTimer;
   Timer? _holdDelayTimer;
