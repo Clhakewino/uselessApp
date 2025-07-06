@@ -88,9 +88,10 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
 
   void _maybeGenerateStars({bool force = false}) {
     // La prima stella appare a counter >= ControlCounters.minCounterStar
-    final int starCount = widget.counter < ControlCounters.minCounterStar
+    int starCount = widget.counter < ControlCounters.minCounterStar
         ? 0
         : widget.counter ~/ widget.starsPerStep;
+    starCount = starCount > ControlCounters.maxNumberOfStar ? ControlCounters.maxNumberOfStar : starCount;
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _stars.length != starCount || _lastSize != size) {
       _generateStars(starCount, size);
@@ -105,7 +106,8 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
       }
       return;
     }
-    final int flowerCount = 1 + ((widget.counter - ControlCounters.minCounterFiori) ~/ 350);
+    int flowerCount = 1 + ((widget.counter - ControlCounters.minCounterFiori) ~/ 350);
+    flowerCount = flowerCount > ControlCounters.maxNumberFiori ? ControlCounters.maxNumberFiori : flowerCount;
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _flowers.length != flowerCount || _lastSize != size) {
       _generateFlowers(flowerCount, size);
@@ -149,6 +151,7 @@ class _LandscapeBackgroundState extends State<LandscapeBackground> with SingleTi
     if (widget.counter >= ControlCounters.minCounterNuvole) {
       cloudCount = 1 + ((widget.counter - ControlCounters.minCounterNuvole) ~/ 1500);
     }
+    cloudCount = cloudCount <= ControlCounters.maxNumberOfClouds ? cloudCount : ControlCounters.maxNumberOfClouds;
     final Size size = widget.screenSize ?? MediaQuery.of(context).size;
     if (force || _clouds.length != cloudCount || _lastSize != size) {
       _generateClouds(cloudCount, size);
